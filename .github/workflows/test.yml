@@ -59,6 +59,11 @@ jobs:
       run: |
         python call_with_payload.py --help
     
+    - name: Test model ID shortcuts
+      run: |
+        python call_with_payload.py --help | grep -q "claude-3.7-sonnet" || exit 1
+        echo "Model shortcuts are properly documented"
+    
     - name: Test file not found error handling
       run: |
         python call_with_payload.py nonexistent.json || echo "Error handling works correctly"

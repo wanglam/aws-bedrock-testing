@@ -1,29 +1,31 @@
 #!/usr/bin/env python3
 """
-Call Claude 3.7 Converse API using data from a specified payload JSON file
-Usage: python call_with_payload.py [payload_file]
+Call Claude Bedrock Converse API using data from a specified payload JSON file
+Usage: python call_with_payload.py [payload_file] [--model-id MODEL_ID]
 """
 
 import boto3
 import json
 import sys
 import os
+import argparse
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-def call_converse_with_payload(payload_file="payload.json"):
-    """Call Converse API using specified payload file"""
+def call_converse_with_payload(payload_file="payload.json", model_id=None):
+    """Call Converse API using specified payload file and model ID"""
+    
+    # Default model ID for Claude 3.7 Sonnet
+    if model_id is None:
+        model_id = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
     
     # Initialize Bedrock client
     bedrock = boto3.client(
         'bedrock-runtime',
         region_name=os.getenv('AWS_REGION', 'us-east-1')
     )
-    
-    # Model ID for Claude 3.7 Sonnet
-    model_id = "us.anthropic.claude-3-7-sonnet-20250219-v1:0"
     
     # Check if payload file exists
     if not os.path.exists(payload_file):
@@ -50,7 +52,7 @@ def call_converse_with_payload(payload_file="payload.json"):
         return False
     
     print(f"📋 Loaded payload from: {payload_file}")
-    print(f"🤖 Using Claude 3.7 model: {model_id}")
+    print(f"🤖 Using model: {model_id}")
     print("=" * 60)
     
     # Extract components from payload
@@ -101,7 +103,7 @@ def call_converse_with_payload(payload_file="payload.json"):
             print(f"   - {tool_name}: {tool_desc[:80]}{'...' if len(tool_desc) > 80 else ''}")
     
     print("\n" + "=" * 60)
-    print("🚀 Calling Claude 3.7 Converse API...")
+    print("🚀 Calling Bedrock Converse API...")
     print("=" * 60)
     
     # Prepare the API call parameters
@@ -125,7 +127,7 @@ def call_converse_with_payload(payload_file="payload.json"):
         if "output" in response and "message" in response["output"]:
             message = response["output"]["message"]
             
-            print("🤖 Claude 3.7 Response:")
+            print("🤖 Model Response:")
             print("-" * 40)
             
             if "content" in message:
@@ -157,11 +159,11 @@ def call_converse_with_payload(payload_file="payload.json"):
             if "content" in message:
                 tool_calls = [block for block in message["content"] if "toolUse" in block]
                 if tool_calls:
-                    print(f"\n⚠️  Note: Claude made {len(tool_calls)} tool call(s).")
+                    print(f"\n⚠️  Note: Model made {len(tool_calls)} tool call(s).")
                     print(f"   In a real implementation, you would need to:")
                     print(f"   1. Execute each tool with the provided input")
                     print(f"   2. Add tool results to the conversation")
-                    print(f"   3. Continue the conversation with Claude")
+                    print(f"   3. Continue the conversation with the model")
         
         # Check stop reason
         stop_reason = response.get('stopReason', 'unknown')
@@ -169,44 +171,102 @@ def call_converse_with_payload(payload_file="payload.json"):
         
     except Exception as e:
         print(f"❌ Error calling Converse API: {str(e)}")
+        
+        # Provide helpful error messages for common issues
+        error_str = str(e).lower()
+        if "validationexception" in error_str and "model" in error_str:
+            print(f"\n💡 Troubleshooting tips:")
+            print(f"   - Check if the model ID is correct: {model_id}")
+            print(f"   - Ensure the model is available in your region: {os.getenv('AWS_REGION', 'us-east-1')}")
+            print(f"   - Verify you have access to this model in AWS Bedrock console")
+        elif "accessdenied" in error_str:
+            print(f"\n💡 Troubleshooting tips:")
+            print(f"   - Check your AWS credentials and permissions")
+            print(f"   - Ensure you have bedrock:InvokeModel permission")
+            print(f"   - Verify model access in AWS Bedrock console")
+        
         return False
     
     print("\n" + "=" * 60)
     print("✅ Converse API call completed successfully!")
     return True
 
+def get_common_model_ids():
+    """Return a dictionary of common model IDs for easy reference"""
+    return {
+        "claude-3.7-sonnet": "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
+        "claude-3.5-sonnet": "us.anthropic.claude-3-5-sonnet-20241022-v2:0",
+        "claude-3.5-haiku": "us.anthropic.claude-3-5-haiku-20241022-v1:0",
+        "claude-3-opus": "us.anthropic.claude-3-opus-20240229-v1:0",
+        "claude-3-sonnet": "us.anthropic.claude-3-sonnet-20240229-v1:0",
+        "claude-3-haiku": "us.anthropic.claude-3-haiku-20240307-v1:0"
+    }
+
 def print_usage():
     """Print usage instructions"""
-    print("Usage: python call_with_payload.py [payload_file]")
+    common_models = get_common_model_ids()
+    
+    print("Usage: python call_with_payload.py [payload_file] [--model-id MODEL_ID]")
     print("")
     print("Arguments:")
     print("  payload_file    Path to JSON payload file (default: payload.json)")
+    print("  --model-id      Model ID to use (default: Claude 3.7 Sonnet)")
     print("")
     print("Examples:")
-    print("  python call_with_payload.py                    # Uses payload.json")
-    print("  python call_with_payload.py my_payload.json    # Uses my_payload.json")
-    print("  python call_with_payload.py data/test.json     # Uses data/test.json")
+    print("  python call_with_payload.py")
+    print("  python call_with_payload.py my_payload.json")
+    print("  python call_with_payload.py --model-id claude-3.5-sonnet")
+    print("  python call_with_payload.py my_payload.json --model-id claude-3.5-haiku")
+    print("")
+    print("Common Model Shortcuts:")
+    for name, model_id in common_models.items():
+        print(f"  {name:<20} -> {model_id}")
+    print("")
+    print("You can also use the full model ID:")
+    print("  python call_with_payload.py --model-id us.anthropic.claude-3-7-sonnet-20250219-v1:0")
 
 if __name__ == "__main__":
-    # Parse command line arguments
-    if len(sys.argv) > 2:
-        print("❌ Error: Too many arguments")
+    # Set up argument parser
+    parser = argparse.ArgumentParser(
+        description="Call Claude Bedrock Converse API with payload files",
+        add_help=False  # We'll handle help ourselves
+    )
+    
+    parser.add_argument('payload_file', nargs='?', default='payload.json',
+                       help='Path to JSON payload file (default: payload.json)')
+    parser.add_argument('--model-id', '-m', type=str,
+                       help='Model ID to use (supports shortcuts like claude-3.7-sonnet)')
+    parser.add_argument('--help', '-h', action='store_true',
+                       help='Show help message')
+    
+    # Parse arguments
+    try:
+        args = parser.parse_args()
+    except SystemExit:
         print_usage()
         sys.exit(1)
-    elif len(sys.argv) == 2:
-        if sys.argv[1] in ['-h', '--help', 'help']:
-            print_usage()
-            sys.exit(0)
-        payload_file = sys.argv[1]
-    else:
-        payload_file = "payload.json"
     
-    print(f"🚀 Claude 3.7 Converse API Caller")
-    print(f"📁 Payload file: {payload_file}")
+    # Handle help
+    if args.help:
+        print_usage()
+        sys.exit(0)
+    
+    # Handle model ID shortcuts
+    model_id = args.model_id
+    if model_id:
+        common_models = get_common_model_ids()
+        if model_id in common_models:
+            model_id = common_models[model_id]
+            print(f"🔄 Using model shortcut: {args.model_id} -> {model_id}")
+    
+    print(f"🚀 Claude Bedrock Converse API Caller")
+    print(f"📁 Payload file: {args.payload_file}")
+    if model_id:
+        print(f"🤖 Model ID: {model_id}")
     print("=" * 60)
     
     # Call the function
-    success = call_converse_with_payload(payload_file)
+    success = call_converse_with_payload(args.payload_file, model_id)
     
     if not success:
         sys.exit(1)

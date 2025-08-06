@@ -50,14 +50,20 @@ source venv/bin/activate
 ### 4. Run Examples
 
 ```bash
-# Use default payload.json
+# Use default payload.json with Claude 3.7
 python call_with_payload.py
 
 # Use specific payload file
 python call_with_payload.py payload-no-hallucination.json
 
-# Create and use your own payload
-python call_with_payload.py my_custom_payload.json
+# Use different model with shortcut
+python call_with_payload.py --model-id claude-3.5-sonnet
+
+# Use different model with full ID
+python call_with_payload.py --model-id us.anthropic.claude-3-5-haiku-20241022-v1:0
+
+# Combine payload file and model
+python call_with_payload.py my_payload.json --model-id claude-3.5-haiku
 
 # Show help
 python call_with_payload.py --help
@@ -90,18 +96,40 @@ call-bedrock-api/
 
 ### Basic Usage
 
-The main script `call_with_payload.py` accepts a payload filename as an argument:
+The main script `call_with_payload.py` accepts a payload filename and optional model ID as arguments:
 
 ```bash
-# Use default payload
+# Use default payload and Claude 3.7
 python call_with_payload.py
 
 # Use specific payload file
 python call_with_payload.py my_payload.json
 
+# Use different model with shortcut
+python call_with_payload.py --model-id claude-3.5-sonnet
+
+# Use full model ID
+python call_with_payload.py --model-id us.anthropic.claude-3-5-haiku-20241022-v1:0
+
+# Combine custom payload and model
+python call_with_payload.py my_payload.json --model-id claude-3.5-haiku
+
 # Show usage help
 python call_with_payload.py --help
 ```
+
+### Model ID Shortcuts
+
+The script supports convenient shortcuts for common models:
+
+| Shortcut | Full Model ID |
+|----------|---------------|
+| `claude-3.7-sonnet` | `us.anthropic.claude-3-7-sonnet-20250219-v1:0` |
+| `claude-3.5-sonnet` | `us.anthropic.claude-3-5-sonnet-20241022-v2:0` |
+| `claude-3.5-haiku` | `us.anthropic.claude-3-5-haiku-20241022-v1:0` |
+| `claude-3-opus` | `us.anthropic.claude-3-opus-20240229-v1:0` |
+| `claude-3-sonnet` | `us.anthropic.claude-3-sonnet-20240229-v1:0` |
+| `claude-3-haiku` | `us.anthropic.claude-3-haiku-20240307-v1:0` |
 
 ### Creating Custom Payloads
 
@@ -213,6 +241,7 @@ The `call_with_payload.py` script provides:
 | Feature | Description |
 |---------|-------------|
 | **Flexible Input** | Accepts any JSON payload file as argument |
+| **Model Selection** | Support for different Claude models with shortcuts |
 | **Error Handling** | Comprehensive error checking and user-friendly messages |
 | **File Validation** | Checks file existence and JSON validity |
 | **Usage Help** | Built-in help with `--help` flag |
